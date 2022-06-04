@@ -159,6 +159,7 @@ const Node = ({
 
   return (
     <Draggable
+      // adding label, id
       className={[styles.wrapper, label, id].join(" ")}
       style={{
         width,
