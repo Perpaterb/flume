@@ -2,13 +2,14 @@ import React from "react";
 import styles from "./Stage.css";
 import { Portal } from "react-portal";
 import ContextMenu from "../ContextMenu/ContextMenu";
-import { NodeTypesContext, NodeDispatchContext } from "../../context";
+import { NodeTypesContext, NodeDispatchContext} from "../../context";
 import Draggable from "../Draggable/Draggable";
 import orderBy from "lodash/orderBy";
 import clamp from "lodash/clamp";
 import { STAGE_ID } from '../../constants'
 
 const Stage = ({
+  nodes,
   scale,
   translate,
   editorId,
@@ -35,6 +36,19 @@ const Stage = ({
   const setStageRect = React.useCallback(() => {
     stageRef.current = wrapper.current.getBoundingClientRect();
   }, []);
+
+
+  //start perp edit
+  //create function list
+  var functionList = []
+  for(let i in nodes){
+    if(nodes[i].type === "function"){
+      functionList.push(nodes[i].inputData)
+    }
+  }
+
+  
+  //end perp edit
 
   React.useEffect(() => {
     stageRef.current = wrapper.current.getBoundingClientRect();
@@ -148,6 +162,16 @@ const Stage = ({
         x,
         y
       });
+
+      //start perp edit
+      //When new option on context menu is clicked
+    } else if(internalType === "get_variable") {
+      console.log("create a new ContextMenu for get_variable")
+    } else if(internalType === "call_function") {
+      console.log("create a new ContextMenu for call_function : " , functionList)
+
+      //end perp edit
+
     } else {
       dispatchNodes({
         type: "ADD_NODE",
@@ -204,6 +228,15 @@ const Stage = ({
           })),
         ["sortIndex", "label"]
       )
+      
+      //start perp edit
+      //add more option to the right click context menu
+      options.unshift({ value: "get_variable", label: "Get Variable", description: "retrieve a previously created variable", internalType: "get_variable" })
+
+      options.unshift({ value: "call_function", label: "Call Function", description: "This node is how you call/run a previously created function", internalType: "call_function" })
+      
+      //end perp edit
+
       if (!disableComments) {
         options.push({ value: "comment", label: "Comment", description: "A comment for documenting nodes", internalType: "comment" })
       }
