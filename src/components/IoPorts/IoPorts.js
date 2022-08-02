@@ -110,17 +110,21 @@ const Input = ({
   inputData,
   hidePort
 }) => {
-  const { label: defaultLabel, color, controls: defaultControls = [] } =
-    inputTypes[type] || {};
+  const { label: defaultLabel, color, controls: defaultControls = [] } = inputTypes[type] || {};
   const prevConnected = usePrevious(isConnected);
 
   const controls = localControls || defaultControls;
+  
+  //start perp edit
 
-  React.useEffect(() => {
-    if (isConnected !== prevConnected) {
-      triggerRecalculation();
-    }
-  }, [isConnected, prevConnected, triggerRecalculation]);
+  //### this is causing a "Warning: Maximum update depth exceeded." error 
+  // React.useEffect(() => {
+  //   if (isConnected !== prevConnected) {
+  //     triggerRecalculation();
+  //   }
+  // }, [isConnected, prevConnected, triggerRecalculation]);
+  
+  //end perp edit
 
   return (
     <div

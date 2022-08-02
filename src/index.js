@@ -68,13 +68,16 @@ export let NodeEditor = (
     {},
     () => getInitialNodes(initialNodes, defaultNodes, nodeTypes, portTypes, context)
   );
+
   const [comments, dispatchComments] = React.useReducer(
     commentsReducer,
     initialComments || {}
   );
+
   React.useEffect(() => {
     dispatchNodes({ type: "HYDRATE_DEFAULT_NODES" });
   }, []);
+  
   const [
     shouldRecalculateConnections,
     setShouldRecalculateConnections
@@ -116,7 +119,58 @@ export let NodeEditor = (
 
   const previousNodes = usePrevious(nodes);
 
+  const checkIfPortsExist = (nodes) => {
+  
+    //console.log(nodes)
+    //for each node
+    for(let i in nodes) {
+      //get outputs
+      for(let outs in nodes[i].connections.outputs){
+        //get connection
+        for(let connection in nodes[i].connections.outputs[outs]){
+          //for each connection search all nodes
+          for(let toNodeID in nodes){
+            //get the node that is being connected to
+            if (nodes[i].connections.outputs[outs][connection].nodeId === nodes[toNodeID].id){
+              //see if that is a call function node
+              if (nodes[toNodeID].type.startsWith("call function ")){
+                // is call function node has a port with the same name th
+                
+                //console.log("p",p)
+
+
+
+
+                const nodeParentID = nodes[toNodeID].type.slice(14)
+                // get parent of call function node
+                for(let parentNode in nodes){
+                  //go through all nodes again
+                  if(nodes[parentNode].id === nodeParentID){
+                    //find the parent of the call function node
+                    for(let p in nodes[parentNode].inputData){
+                      //console.log("p",p)
+                      //get paramiters 
+                      if (p.startsWith("Parameter")){
+                        //console.log("nodes[parentNode].inputData[p].string: ", nodes[parentNode].inputData[p].string)
+                        // if the parent has a paramiter that the First node is connecting to then the connection is valid
+                        if(nodes[parentNode].inputData[p].string !== nodes[i].connections.outputs[outs][connection].portName){
+                          // remove copnnection
+                                                  
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   React.useEffect(() => {
+    checkIfPortsExist(nodes)
     if (previousNodes && onChange && nodes !== previousNodes) {
       onChange(nodes);
     }
@@ -157,6 +211,7 @@ export let NodeEditor = (
                             spaceToPan={spaceToPan}
                             disablePan={disablePan}
                             disableZoom={disableZoom}
+                            manualDispatchNodes={dispatchNodes}
                             dispatchStageState={dispatchStageState}
                             dispatchComments={dispatchComments}
                             disableComments={disableComments || hideComments}
@@ -213,6 +268,7 @@ export let NodeEditor = (
                                 onDragStart={recalculateStageRect}
                                 renderNodeHeader={renderNodeHeader}
                                 key={node.id}
+                                nodes={nodes}
                               />
                             ))}
                             <Connections nodes={nodes} editorId={editorId} />

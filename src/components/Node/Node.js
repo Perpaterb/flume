@@ -4,7 +4,8 @@ import {
   NodeTypesContext,
   NodeDispatchContext,
   StageContext,
-  CacheContext
+  CacheContext,
+  PortTypesContext
 } from "../../context";
 import { getPortRect, calculateCurve } from "../../connectionCalculator";
 import { Portal } from "react-portal";
@@ -22,14 +23,92 @@ const Node = ({
   type,
   inputData,
   onDragStart,
-  renderNodeHeader
+  renderNodeHeader,
+  nodes
 }) => {
+
   const cache = React.useContext(CacheContext);
   const nodeTypes = React.useContext(NodeTypesContext);
   const nodesDispatch = React.useContext(NodeDispatchContext);
   const stageState = React.useContext(StageContext);
-  const currentNodeType = nodeTypes[type];
+    
+  //start perp edit
+
+  const portTypes = React.useContext(PortTypesContext);
+
+  let currentNodeType = "";
+
+  if(type.startsWith("call function ")) {
+
+    const nodeParentID = type.slice(14)
+    let nodeParent = ""
+
+    for (let i in nodes) {
+      if (nodes[i].id === nodeParentID){
+        nodeParent = nodes[i]
+      }
+    }
+
+    currentNodeType = nodeTypes["Call function"]
+    currentNodeType.label = "Call function: " + nodeParent.inputData.functionName.string
+    currentNodeType.name = "Call function: " + nodeParent.inputData.functionName.string
+    currentNodeType.description = "This node will call the function " + nodeParent.inputData.functionName.string
+
+    function createdInputs(nodeParent){
+      let inputPorts = [portTypes["power"]]
+      let objToAdd = []
+      let nameToAdd = []
+      
+      for (let p in nodeParent.inputData){
+        if (p.startsWith("Parameter")){
+          if(nodeParent.inputData[p].string !== ''){
+            objToAdd.push(JSON.parse(JSON.stringify(portTypes["variable"])))
+            nameToAdd.push(nodeParent.inputData[p].string)
+          }
+        }
+      }
+      
+      if (objToAdd.length > 0){
+        for(let e in objToAdd){
+          if (objToAdd[e].name === "variable"){
+            objToAdd[e].label = nameToAdd[e]
+            objToAdd[e].name = nameToAdd[e]
+          }
+        }
+        for (var e in objToAdd) {
+          inputPorts.push(objToAdd[e])
+        }
+      }
+
+      //console.log("inputPorts", inputPorts);
+      return inputPorts
+    }
+
+    currentNodeType.inputs = createdInputs(nodeParent)
+    
+  } else if (type.startsWith("get variable ")) {
+    const nodeParentID = type.slice(13)
+    let nodeParent = ""
+
+    for (let i in nodes) {
+      if (nodes[i].id === nodeParentID){
+        nodeParent = nodes[i]
+      }
+    }
+
+    currentNodeType = nodeTypes["get variable"]
+    currentNodeType.label = "get variable: " + nodeParent.inputData.variableName.string
+    currentNodeType.name = "get variable: " + nodeParent.inputData.variableName.string
+    currentNodeType.description = "This node get retrieves the variable " + nodeParent.inputData.variableName.string
+  
+  } else {
+    currentNodeType = nodeTypes[type];
+  }
+  // console.log("portTypes[power]", portTypes[power]({label: "Power", name: "powerIn"}));
+  // const currentNodeType = nodeTypes[type];
+
   const { label, deletable, inputs = [], outputs = [] } = currentNodeType;
+  //end perp edit
 
   const nodeWrapper = React.useRef();
   const [menuOpen, setMenuOpen] = React.useState(false);

@@ -19,6 +19,7 @@ const Stage = ({
   numNodes,
   stageRef,
   spaceToPan,
+  manualDispatchNodes,
   dispatchComments,
   disableComments,
   disablePan,
@@ -33,6 +34,37 @@ const Stage = ({
   const dragData = React.useRef({ x: 0, y: 0 });
   const [spaceIsPressed, setSpaceIsPressed] = React.useState(false);
 
+  //start perp edit
+  const menuOptionsStage1stRight = React.useMemo(
+    () => {
+      const options = orderBy(
+        Object.values(nodeTypes)
+          .filter(node => node.addable !== false)
+          .map(node => ({
+            value: node.type,
+            label: node.label,
+            description: node.description,
+            sortIndex: node.sortIndex,
+            node
+          })),
+        ["sortIndex", "label"]
+      )
+
+      options.unshift({ value: "get_variable", label: "Get Variable", description: "retrieve a previously created variable", internalType: "get_variable" })
+      options.unshift({ value: "call_function", label: "Call Function", description: "This node is how you call/run a previously created function", internalType: "call_function" })
+
+      if (!disableComments) {
+        options.push({ value: "comment", label: "Comment", description: "A comment for documenting nodes", internalType: "comment" })
+      }
+      return options
+    },
+    [nodeTypes, disableComments]
+  );
+
+  const [menuOptions, setMenuOptions] = React.useState(menuOptionsStage1stRight);
+  //end perp edit
+
+
   const setStageRect = React.useCallback(() => {
     stageRef.current = wrapper.current.getBoundingClientRect();
   }, []);
@@ -43,11 +75,16 @@ const Stage = ({
   var functionList = []
   for(let i in nodes){
     if(nodes[i].type === "function"){
-      functionList.push(nodes[i].inputData)
+      functionList.push(nodes[i])
     }
   }
 
-  
+  var variableList = []
+  for(let i in nodes){
+    if(nodes[i].type === "set variable"){
+      variableList.push(nodes[i])
+    }
+  }  
   //end perp edit
 
   React.useEffect(() => {
@@ -144,9 +181,14 @@ const Stage = ({
 
   const closeContextMenu = () => {
     setMenuOpen(false);
+    //start perp edit
+    setMenuOptions(menuOptionsStage1stRight)
+    //end perp edit
   };
 
   const byScale = value => (1 / scale) * value;
+
+  
 
   const addNode = ({ node, internalType }) => {
     const wrapperRect = wrapper.current.getBoundingClientRect();
@@ -156,7 +198,12 @@ const Stage = ({
     const y =
       byScale(menuCoordinates.y - wrapperRect.y - wrapperRect.height / 2) +
       byScale(translate.y);
+
     if (internalType === "comment") {
+      //start perp edit
+      setMenuOpen(false);
+      setMenuOptions(menuOptionsStage1stRight)
+      //end perp edit
       dispatchComments({
         type: "ADD_COMMENT",
         x,
@@ -166,13 +213,67 @@ const Stage = ({
       //start perp edit
       //When new option on context menu is clicked
     } else if(internalType === "get_variable") {
-      console.log("create a new ContextMenu for get_variable")
+
+      let variableNameList = []
+      for(let i in variableList){
+        //console.log(variableList)
+        variableNameList.push({label: variableList[i].inputData.variableName.string, value: variableList[i].inputData.variableName.string, description: "", sortIndex: i, node: {label: "get variable " + variableList[i].inputData.variableName.string, value: "get variable " + variableList[i].inputData.variableName.string, details: variableList[i] }})
+      }
+
+      setMenuOptions(variableNameList)
+
     } else if(internalType === "call_function") {
-      console.log("create a new ContextMenu for call_function : " , functionList)
+      
+      
+      let functionNameList = []
+      for(let i in functionList){
+        functionNameList.push({label: functionList[i].inputData.functionName.string, value: functionList[i].inputData.functionName.string, description: "", sortIndex: i, node: {label: "call function " + functionList[i].inputData.functionName.string, value: "call function " + functionList[i].inputData.functionName.string, details: functionList[i] }})
+      }
+      setMenuOptions(functionNameList)
+
+
+
+    } else if(node.label.startsWith("call function ")) {
+      
+      //console.log("create CALL_FUNCTION node :", node.details)
+
+      dispatchNodes({
+        type: "ADD_CALL_FUNCTION_NODE",
+        x,
+        y,
+        nodeType: node.details
+      });
+
+      setMenuOptions(menuOptionsStage1stRight)
+      setMenuOpen(false);
+      
+
+    } else if(node.label.startsWith("get variable ")) {
+      
+      //console.log("create GET_VARIABLE node :", node.details)
+     
+      dispatchNodes({
+        type: "ADD_GET_VARIABLE_NODE",
+        x,
+        y,
+        nodeType: node.details
+      });
+
+      setMenuOptions(menuOptionsStage1stRight)
+      setMenuOpen(false);
+
 
       //end perp edit
 
     } else {
+
+      //start perp edit
+      setMenuOpen(false);
+      setMenuOptions(menuOptionsStage1stRight)
+
+      //console.log("create this node", node)
+
+      //end perp edit
       dispatchNodes({
         type: "ADD_NODE",
         x,
@@ -213,38 +314,7 @@ const Stage = ({
       };
     }
   }, [handleWheel, disableZoom]);
-
-  const menuOptions = React.useMemo(
-    () => {
-      const options = orderBy(
-        Object.values(nodeTypes)
-          .filter(node => node.addable !== false)
-          .map(node => ({
-            value: node.type,
-            label: node.label,
-            description: node.description,
-            sortIndex: node.sortIndex,
-            node
-          })),
-        ["sortIndex", "label"]
-      )
       
-      //start perp edit
-      //add more option to the right click context menu
-      options.unshift({ value: "get_variable", label: "Get Variable", description: "retrieve a previously created variable", internalType: "get_variable" })
-
-      options.unshift({ value: "call_function", label: "Call Function", description: "This node is how you call/run a previously created function", internalType: "call_function" })
-      
-      //end perp edit
-
-      if (!disableComments) {
-        options.push({ value: "comment", label: "Comment", description: "A comment for documenting nodes", internalType: "comment" })
-      }
-      return options
-    },
-    [nodeTypes, disableComments]
-  );
-
   return (
     <Draggable
       data-flume-component="stage"

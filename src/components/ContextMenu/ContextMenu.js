@@ -24,7 +24,9 @@ const ContextMenu = ({
 
   const handleOptionSelected = option => {
     onOptionSelected(option);
-    onRequestClose();
+    //start perp edit
+    //onRequestClose();
+    //end perp edit
   };
 
   const testClickOutside = React.useCallback(

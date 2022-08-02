@@ -179,6 +179,26 @@ export const getInitialNodes = (
   portTypes,
   context
 ) => {
+
+  //perp edit start
+  //Add the custome nodes to the nodeTypes var
+  // without this getDefaultData and reconcileNodes will brake evrything.
+
+  for(let i in initialNodes){
+    if(initialNodes[i].type.startsWith("get variable")){
+      let getVarTypeCopy = { ...nodeTypes["get variable"]}
+      getVarTypeCopy.type = initialNodes[i].type
+      nodeTypes[initialNodes[i].type] = getVarTypeCopy
+    }
+    if(initialNodes[i].type.startsWith("call function ")){
+      let callFuncTypeCopy = { ...nodeTypes["Call function"]}
+      callFuncTypeCopy.type = initialNodes[i].type
+      nodeTypes[initialNodes[i].type] = callFuncTypeCopy
+    }
+  }
+
+  //perp edit end 
+
   const reconciledNodes = reconcileNodes(initialNodes, nodeTypes, portTypes, context);
 
   return {
@@ -207,6 +227,7 @@ export const getInitialNodes = (
 };
 
 const getDefaultData = ({ node, nodeType, portTypes, context }) => {
+
   const inputs = Array.isArray(nodeType.inputs)
     ? nodeType.inputs
     : nodeType.inputs(node.inputData, node.connections, context);
@@ -230,12 +251,14 @@ const nodesReducer = (
   { nodeTypes, portTypes, cache, circularBehavior, context },
   dispatchToasts
 ) => {
+  
   switch (action.type) {
     case "ADD_CONNECTION": {
       const { input, output } = action;
       const inputIsNotConnected = !nodes[input.nodeId].connections.inputs[
         input.portName
       ];
+
       if (inputIsNotConnected) {
         const allowCircular = circularBehavior === "warn" || circularBehavior === "allow"
         const newNodes = addConnection(nodes, input, output, portTypes);
@@ -323,6 +346,56 @@ const nodesReducer = (
         [newNodeId]: newNode
       };
     }
+
+    //start perp edit
+    case "ADD_CALL_FUNCTION_NODE": {
+      const { x, y, nodeType, id, defaultNode } = action;
+      const newNodeId = id || nanoid(10);
+      //console.log("From Node Reducer - nodeType: ",nodeType)
+      const newNode = {
+        id: newNodeId,
+        x,
+        y,
+        type: "call function " + nodeType.id,
+        width: 200,
+        connections: {
+          inputs: {},
+          outputs: {}
+        },
+        inputData: {}
+      };
+
+      return {
+        ...nodes,
+        [newNodeId]: newNode
+      };
+    }
+ 
+
+    case "ADD_GET_VARIABLE_NODE": {
+      const { x, y, nodeType, id, defaultNode } = action;
+      const newNodeId = id || nanoid(10);
+      //console.log("From Node Reducer - nodeType: ",nodeType)
+      const newNode = {
+        id: newNodeId,
+        x,
+        y,
+        type: "get variable " + nodeType.id,
+        width: 200,
+        connections: {
+          inputs: {},
+          outputs: {}
+        },
+        inputData: {}
+      };
+
+      return {
+        ...nodes,
+        [newNodeId]: newNode
+      };
+    }
+    
+    //end perp edit
 
     case "REMOVE_NODE": {
       const { nodeId } = action;
